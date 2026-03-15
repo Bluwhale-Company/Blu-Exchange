@@ -3,3 +3,9 @@ mydocs/
 bin/
 *.excalidraw
 .github/
+# Go build artifacts
+/exchange
+/bin/exchange
+
+# Go temporary build cache
+/tmp/go-build-cache/
