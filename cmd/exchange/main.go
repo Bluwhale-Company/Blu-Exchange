@@ -1,149 +1,50 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"errors"
 	"flag"
-	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
-	"strings"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/alexedwards/scs/postgresstore"
-	"github.com/alexedwards/scs/v2"
-	"github.com/go-playground/form"
-	"github.com/kayden-vs/zaraba/internal/models"
-	"github.com/kayden-vs/zaraba/internal/service"
-	"github.com/kayden-vs/zaraba/pb"
-	_ "github.com/lib/pq"
-	"google.golang.org/grpc"
+	"github.com/Bluwhale-Company/Blu-Exchange/internal/market"
+	"github.com/Bluwhale-Company/Blu-Exchange/internal/web"
 )
 
-type application struct {
-	errorLog       *log.Logger
-	infoLog        *log.Logger
-	formDecoder    *form.Decoder
-	users          models.UserModelInterface
-	wallet         models.WalletModelInterface
-	orders         models.OrderModelInterface
-	sessionManager *scs.SessionManager
-	exchangeServer *service.ExchangeServer
-	startedAt      time.Time
-}
-
 func main() {
-	addr := flag.String("addr", ":8080", "HTTP server port")
-	grpcAddr := flag.String("grpc-addr", ":50051", "gRPC server port")
-	dsn := flag.String("dsn", "postgres://rohit:eren@/exchange?host=/var/run/postgresql&sslmode=disable", "PostgreSQL data source name")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	addr := flag.String("addr", ":"+port, "HTTP listen address")
+	offline := flag.Bool("offline", false, "Use labeled sample data without contacting market providers")
 	flag.Parse()
-
-	appEnv := strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV")))
-	if appEnv == "" {
-		appEnv = "development"
+	if flag.NArg() != 0 {
+		log.Fatal("unexpected arguments; use -h for server options")
 	}
-
-	if appEnv == "production" {
-		if strings.TrimSpace(os.Getenv("API_KEY")) == "" {
-			log.Fatal("missing required env var: API_KEY")
-		}
-		if strings.TrimSpace(*dsn) == "" {
-			log.Fatal("missing required database DSN")
-		}
-	}
-
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
-
-	db, err := openDB(*dsn)
+	service := market.New(market.Options{Offline: *offline})
+	handler, err := web.New(service)
 	if err != nil {
-		errorLog.Fatal(err)
+		log.Fatal(err)
 	}
-	defer db.Close()
-
-	formDecoder := form.NewDecoder()
-
-	sessionManager := scs.New()
-	sessionManager.Store = postgresstore.New(db)
-	sessionManager.Lifetime = 12 * time.Hour
-	sessionManager.Cookie.HttpOnly = true
-	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
-	sessionManager.Cookie.Secure = appEnv == "production"
-
-	infoLog.Printf("running in %s mode", appEnv)
-	if appEnv == "production" && !strings.EqualFold(os.Getenv("CSRF_SECURE_COOKIE"), "true") {
-		infoLog.Printf("warning: CSRF_SECURE_COOKIE is not true; set CSRF_SECURE_COOKIE=true in production")
-	}
-
-	orderModel := &models.OrderModel{DB: db}
-	if err := orderModel.EnsureSchema(); err != nil {
-		errorLog.Fatal(err)
-	}
-
-	app := &application{
-		errorLog:       errorLog,
-		infoLog:        infoLog,
-		formDecoder:    formDecoder,
-		users:          &models.UserModel{DB: db},
-		wallet:         &models.WalletModel{DB: db},
-		orders:         orderModel,
-		sessionManager: sessionManager,
-		startedAt:      time.Now(),
-	}
-
-	srv := &http.Server{
-		Addr:              *addr,
-		ErrorLog:          errorLog,
-		Handler:           app.routes(),
-		ReadHeaderTimeout: 5 * time.Second,
-		IdleTimeout:       1 * time.Minute,
-		ReadTimeout:       5 * time.Second,
-		MaxHeaderBytes:    1 << 20,
-		// WriteTimeout is intentionally omitted — SSE connections are long-lived
-	}
-
-	// Start gRPC server in a goroutine
-	lis, err := net.Listen("tcp", *grpcAddr)
-	if err != nil {
-		errorLog.Fatalf("failed to listen on gRPC address %s: %v", *grpcAddr, err)
-	}
-
-	grpcServer := grpc.NewServer()
-	exchangeServer := service.NewExchangeServer()
-	app.exchangeServer = exchangeServer
-	pb.RegisterExchangeServer(grpcServer, exchangeServer)
-
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	go service.Run(ctx)
+	server := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {
-		infoLog.Printf("Starting gRPC server on %s", *grpcAddr)
-		if err := grpcServer.Serve(lis); err != nil {
-			errorLog.Fatalf("failed to serve gRPC: %v", err)
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdown); err != nil {
+			log.Print("Shutdown: ", err)
 		}
 	}()
-
-	// Start WebSocket price fetcher
-	go service.StartMarketFetcher()
-
-	infoLog.Printf("Starting HTTP server on %s", *addr)
-	err = srv.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		errorLog.Fatal(fmt.Errorf("http server error: %w", err))
+	log.Printf("Blu-Exchange listening on %s | database-free market preview", *addr)
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
 	}
-}
-
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		return nil, err
-	}
-	// Recycle connections proactively so cloud DB timeouts (e.g. Supabase) never
-	// leave the pool holding a dead connection, which causes "broken pipe" errors.
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)  // force-refresh before Supabase's ~5-10 min idle timeout
-	db.SetConnMaxIdleTime(1 * time.Minute)  // drop connections idle in pool for > 1 min
-	if err = db.Ping(); err != nil {
-		return nil, err
-	}
-	return db, nil
 }

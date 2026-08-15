@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1">
+ <meta name="theme-color" content="#0b0f17">
+ <meta name="description" content="Explore BluAI, cryptocurrencies, and North American and European stocks with Blu-Exchange.">
+ <title>Markets · Blu-Exchange</title>
+ <link rel="icon" type="image/svg+xml" href="/static/images/brand.svg">
+ <link rel="stylesheet" href="/static/css/main.css">
+ <script type="module" src="/static/js/app.mjs"></script>
+</head>
+<body>
+ <a class="skip-link" href="#main">Skip to content</a>
+ <header class="site-header">
+  <div class="header-inner">
+   <a class="brand" href="/" data-nav aria-label="Blu-Exchange home"><img src="/static/images/brand.svg" width="32" height="32" alt=""><span>Blu<span class="brand-light">-Exchange</span></span></a>
+   <nav class="main-nav" aria-label="Main navigation">
+    <a href="/markets" data-nav data-section="markets">Markets</a>
+    <a href="/trade/bitcoin" data-nav data-section="trade">Trade <span class="tiny-label">PREVIEW</span></a>
+    <a href="/watchlist" data-nav data-section="watchlist">Watchlist</a>
+    <a href="/portfolio" data-nav data-section="portfolio">Portfolio</a>
+   </nav>
+   <div class="header-actions"><button class="feed-button" id="feed-button" title="View data sources"><span class="status-dot"></span><span id="feed-label">Connecting</span></button><span class="currency-label">USD</span><button class="icon-button" id="theme-toggle" aria-label="Switch to light theme"></button></div>
+  </div>
+ </header>
+ <main id="main" tabindex="-1"><div class="loading-state"><div class="loader"></div><h1>Bringing your markets together</h1><p>Loading the Blu-Exchange market workspace…</p></div></main>
+ <noscript><p class="notice">Enable JavaScript to view market prices and use the trading preview.</p></noscript>
+ <footer class="site-footer">
+  <a class="footer-brand" href="/" data-nav>Blu-Exchange<span>Markets, in perspective.</span></a>
+  <p>Market preview. Orders and portfolios are illustrative.</p>
+  <button class="text-button" id="footer-sources">Data sources <span aria-hidden="true">↗</span></button>
+ </footer>
+ <dialog id="modal" aria-labelledby="modal-title"><div class="dialog-head"><h2 id="modal-title"></h2><button id="close-modal" class="icon-button" aria-label="Close dialog">✕</button></div><div id="modal-body"></div></dialog>
+ <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

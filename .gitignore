@@ -5,6 +5,9 @@ bin/
 .github/
 # Go build artifacts
 /exchange
+/exchange.exe
+/Blu-Exchange
+/Blu-Exchange.exe
 /bin/exchange
 
 # Go temporary build cache

@@ -1,147 +1,92 @@
-# Zaraba
+# Blu-Exchange
 
-[![wakatime](https://wakatime.com/badge/user/48b7c6b6-47f6-43fd-b31a-738678b1cdeb/project/a5b663dc-49ae-4864-bc64-bf3164b21bc7.svg)](https://wakatime.com/badge/user/48b7c6b6-47f6-43fd-b31a-738678b1cdeb/project/a5b663dc-49ae-4864-bc64-bf3164b21bc7)
+A database-free crypto and stock market workspace, built with Go and embedded HTML, CSS, and JavaScript. Includes BluAI (Bluwhale), seven other cryptocurrencies, and selected North American and European companies.
 
-Zaraba is a cryptocurrency exchange backend written in Go, built around an in-memory orderbook, an internal gRPC service layer, and a server-rendered UI.
+## Run
 
-![Zaraba architecture diagram](assets/chart.png)
+Install Go 1.25.5 or newer, then run from the project directory:
 
-## Screenshots
+```sh
+go run .                 # build and start at http://localhost:8080
+go run . run -addr :9000  # use another port
+go run . start           # same as run
+go run . build           # build bin/exchange (exchange.exe on Windows)
+go run . test            # run all Go tests without market-network access
+go run . help
+```
 
-### Landing Page
-![Landing Page](assets/landingpage.png)
+`go run main.go` also works. Stop the foreground process with Ctrl+C.
+No npm install, database, migration, Redis, account, or API key is required to start.
+The executable embeds the entire UI and can run independently of the source directory.
 
-### Markets
-![Markets](assets/markets.png)
+For a completely offline preview:
 
-### Trade Interface
-![Trade](assets/trade.png)
+```sh
+go run . run -offline
+```
 
-### Wallet
-![Wallet](assets/wallet.png)
+Optional frontend logic checks require Node.js 20 or newer:
 
-## What it includes
+```sh
+node --test tests/frontend.test.mjs
+```
 
-- In-memory matching engine for limit and market orders
-- Integer-based price and quantity handling for financial precision
-- HTTP app (Chi) with session auth and CSRF protection
-- Internal gRPC exchange service in the same process
-- Real-time market, orderbook, and trade streams via SSE
-- PostgreSQL persistence for users, wallets, orders, and sessions
-- Templ-based server-rendered frontend
+## Market data
 
-## Architecture at a glance
+The only live-data provider is Coinbase's **public Exchange API**. No credentials or environment file are needed.
 
-- Single process starts both HTTP (`:8080` by default) and gRPC (`:50051` by default)
-- HTTP handlers call the in-process exchange server
-- Matching happens in memory (`internal/engine`)
-- SSE brokers push updates to connected browser clients
-- PostgreSQL stores user, wallet, order, and session data
+- **Prices:** BTC, ETH, SOL, XRP, DOGE, LINK, and ADA use their Coinbase USD pairs. The server fetches current 24-hour statistics immediately at startup and every **30 seconds**. The website also refreshes quotes every **30 seconds**, without reloading the page or resetting the watchlist and order form.
+- **Unsupported assets:** BLUAI and the stock catalog have no supported USD pairs in this Coinbase feed. They remain clearly labeled **Sample** previews. No alternative provider or API key is used for these rows.
+- **Freshness:** source badges and fetch timestamps distinguish Live, Stale, and Sample data. Coinbase stats does not provide a trade timestamp, so the displayed timestamp is explicitly the fetch time. Failed refreshes retain the last successful quote as Stale.
+- **Charts:** Coinbase hourly candle closes supply the 1D and 7D charts for supported assets. History is fetched separately every **15 minutes** to avoid frequent candle requests. Real timestamps, gaps, and cached-history timestamps are preserved. History failures never replace a live asset's chart with a synthetic curve. Sample previews retain explicitly illustrative charts.
+- **Caching:** quotes and history stay in memory. Browser requests read the shared snapshot and never fan out into extra Coinbase requests. A maximum of three provider requests runs concurrently, and a refresh is bounded to 25 seconds. Market cap is unavailable from this feed and displayed as a dash.
 
-## Tech stack
+The server defaults to port 8080. Use `-addr :9000` to choose another address; hosted deployments can set the standard process `PORT` variable. The app does not load `.env` files, and feed credentials or interval environment variables are not used.
 
-- Go 1.25+
-- Chi router
-- gRPC + Protocol Buffers
-- PostgreSQL (`lib/pq`)
-- SCS sessions (Postgres store)
-- Templ for HTML rendering
+Coinbase's access, attribution, redistribution terms, and rate limits govern its data.
 
-## Project structure
+## Screens and behavior
+
+- `/` and `/markets`: featured assets, market categories, search, sorting, pagination, and source labels.
+- `/trade/bitcoin`, `/trade/bluai`, `/trade/nvda`, etc.: price history, asset information, and market/limit buy/sell estimates. **Orders are never submitted or saved.**
+- `/watchlist`: stars are kept only in the current page's memory, including navigation within the app. Reloading clears them.
+- `/portfolio` (also `/user/wallet`): fixed sample quantities valued using the displayed quotes.
+- `/orders`: static, unsubmitted order examples.
+- `/user/account`: read-only account preview. User creation, editing, deletion, authentication, deposits, and withdrawals are absent.
+- Dark and light themes, keyboard search shortcut `/`, responsive layouts, and keyboard-accessible controls.
+
+No cookies, local storage, IndexedDB, disk-backed market cache, or user persistence are used.
+All provider data and UI preview state disappear on restart/reload.
+
+## Structure and HTTP API
 
 ```text
-cmd/exchange      HTTP server, routes, middleware, handlers
-cmd/simulator     Optional market-maker bot
-internal/engine   Matching engine + precision helpers
-internal/models   Database access (users, wallets, orders)
-internal/service  gRPC server, SSE brokers, liquidity manager
-proto/            Protobuf definitions
-pb/               Generated protobuf Go code
-ui/               Templ pages, partials, static assets
-schema.sql        Wallet and order tables
+main.go                 run/start/build/test launcher
+cmd/exchange/main.go    HTTP server and shutdown
+internal/market/        catalog, quote providers, in-memory snapshot
+internal/web/           read-only routes and static serving
+ui/static/              embedded HTML, CSS, JavaScript, and SVG brand
+tests/                  frontend logic tests
 ```
 
-## Quick start
+`GET /api/markets` returns `assets`, `feeds`, `updatedAt`, and `refreshSeconds`.
+Each asset includes metadata and a `quote` with its price, source, status, timestamps, and available history.
+`GET /ping` returns `OK`. Asset IDs are allowlisted. Unknown pages return 404; mutation methods return 405. The Go app uses only the standard library.
 
-### 1) Prerequisites
+## Containers and deployment
 
-- Go 1.25+
-- PostgreSQL
-
-### 2) Environment variables
-
-Required in normal use:
-
-- `DATABASE_URL` (PostgreSQL DSN)
-- `API_KEY` (CoinGecko API key)
-
-Common local defaults:
-
-- `CSRF_SECURE_COOKIE=false`
-- `DISABLE_CSRF=true`
-- `APP_ENV=development`
-
-### 3) Database setup
-
-Create these tables:
-
-1. `users` table
-2. `wallets` and `orders` tables from `schema.sql`
-3. `sessions` table for SCS session storage
-
-The full SQL is documented in `mydocs/DEPLOYMENT.md`.
-
-### 4) Build and run
-
-```bash
-go build -o bin/exchange ./cmd/exchange/
-go run ./cmd/exchange/ -addr :8080 -dsn "$DATABASE_URL"
+```sh
+docker compose up --build
 ```
 
-Run tests:
+The Compose configuration runs one application container on port 8080, with no volumes, database services, or feed credentials.
+The image includes CA certificates for outbound HTTPS and runs as an unprivileged user.
+`render.yaml` defines the same standalone service and uses the host-provided `PORT`.
 
-```bash
-go test -v ./...
-```
+## Design and data references
 
-Optional simulator:
+The layout uses Blu-Exchange's blue/charcoal identity with market-table, asset-category, and trading-workspace patterns informed by [Binance Markets](https://www.binance.com/en/markets/overview), [Crypto.com Exchange](https://crypto.com/exchange), [OKX Markets](https://www.okx.com/markets/prices), and [LocalCoinSwap](https://localcoinswap.com/).
 
-```bash
-go build -o bin/simulator ./cmd/simulator/
-SIM_BASE_URL=http://localhost:8080 go run ./cmd/simulator/
-```
+Provider contracts: [Coinbase public product stats](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-stats), [Coinbase candles](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles), [Coinbase product list](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-all-known-trading-pairs), and [Coinbase rate limits](https://docs.cdp.coinbase.com/exchange/rest-api/rate-limits).
 
-## Runtime endpoints
-
-Core routes:
-
-- `GET /ping`
-- `GET /markets`
-- `GET /trade/{symbol}`
-- `POST /trade/{symbol}/placemarketorder`
-- `POST /trade/{symbol}/placelimitorder`
-- `GET /user/wallet`
-
-SSE routes:
-
-- `GET /sse/markets`
-- `GET /sse/orderbook`
-- `GET /sse/trades`
-
-gRPC service methods (`proto/exchange.proto`):
-
-- `PlaceMarketOrder`
-- `PlaceLimitOrder`
-- `StreamOrderBook`
-
-## Precision model
-
-- Price scale: `1 USDT = 1,000,000` micro-units (`int64`)
-- Quantity scale: `1 unit = 100,000,000` base units (`int64`)
-
-All matching and notional calculations are integer-based in the engine.
-
-## Development notes
-
-- Edit `.templ` files, then run `templ generate`
-- Edit `proto/*.proto`, then run `make proto`
+During the database-free conversion, the previous source (including uncommitted files) was preserved locally under ignored `bin/.legacy-source/`. This local recovery archive is not part of the app or a fresh clone. Old gRPC/database benchmarks are archived there because the services they measured were removed.

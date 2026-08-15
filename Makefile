@@ -1,16 +1,11 @@
+GO ?= go
+
+.PHONY: build run start test
 build:
-	go build -o bin/exchange ./cmd/exchange/
-
-run: build
-	./bin/exchange
-
-proto:	
-	protoc --proto_path=proto \
-		--go_out=pb --go_opt=paths=source_relative \
-		--go-grpc_out=pb --go-grpc_opt=paths=source_relative \
-		proto/*.proto
-
-.PHONY: proto run build test
-
+	$(GO) run . build
+run:
+	$(GO) run . run
+start:
+	$(GO) run . start
 test:
-	go test -v ./...
+	$(GO) run . test
