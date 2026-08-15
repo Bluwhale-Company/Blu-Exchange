@@ -27,7 +27,7 @@ Usage: go run . [command] [options]
   help     Show this help
 
 Examples:
-  go runa .
+  go run .
   go run . run -addr :9000
   go run . start
   go run . test -v
