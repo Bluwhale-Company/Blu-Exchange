@@ -7,11 +7,11 @@ A database-free crypto and stock market workspace, built with Go and embedded HT
 Install Go 1.25.5 or newer, then run from the project directory:
 
 ```sh
-go run .                 # build and start at http://localhost:8080
-go run . run -addr :9000  # use another port
-go run . start           # same as run
-go run . build           # build bin/exchange (exchange.exe on Windows)
-go run . test            # run all Go tests without market-network access
+go run .                # start at http://localhost:8080
+go run . --port 9000    # start on a custom port
+go run . start          # explicit start command
+go run . build          # build bin/exchange (exchange.exe on Windows)
+go run . test           # run Go and UI tests together
 go run . help
 ```
 
@@ -22,14 +22,18 @@ The executable embeds the entire UI and can run independently of the source dire
 For a completely offline preview:
 
 ```sh
-go run . run -offline
+go run . --offline
 ```
 
-Optional frontend logic checks require Node.js 20 or newer:
+The single test command requires Go and Node.js 20 or newer and runs both suites without contacting market providers:
 
 ```sh
-node --test tests/frontend.test.mjs
+go run . test
 ```
+
+Additional Go test flags work, for example `go run . test -v`.
+For Go tests only, use `go test ./...`.
+With Make installed, `make test` runs both suites and `make start PORT=9000` starts on a custom port.
 
 ## Market data
 
@@ -41,7 +45,7 @@ The only live-data provider is Coinbase's **public Exchange API**. No credential
 - **Charts:** Coinbase hourly candle closes supply the 1D and 7D charts for supported assets. History is fetched separately every **15 minutes** to avoid frequent candle requests. Real timestamps, gaps, and cached-history timestamps are preserved. History failures never replace a live asset's chart with a synthetic curve. Sample previews retain explicitly illustrative charts.
 - **Caching:** quotes and history stay in memory. Browser requests read the shared snapshot and never fan out into extra Coinbase requests. A maximum of three provider requests runs concurrently, and a refresh is bounded to 25 seconds. Market cap is unavailable from this feed and displayed as a dash.
 
-The server defaults to port 8080. Use `-addr :9000` to choose another address; hosted deployments can set the standard process `PORT` variable. The app does not load `.env` files, and feed credentials or interval environment variables are not used.
+The server defaults to port 8080. Use `--port 9000` to choose a custom port, or `--addr 127.0.0.1:9000` to bind a specific interface. These options also work with `start` and the compiled executable. Supply either `--port` or `--addr`; both validate port numbers from 1 to 65535. Explicit flags override the standard process `PORT` variable. The app does not load `.env` files, and feed credentials or interval environment variables are not used.
 
 Coinbase's access, attribution, redistribution terms, and rate limits govern its data.
 
@@ -61,7 +65,7 @@ All provider data and UI preview state disappear on restart/reload.
 ## Structure and HTTP API
 
 ```text
-main.go                 run/start/build/test launcher
+main.go                 start/build/test launcher
 cmd/exchange/main.go    HTTP server and shutdown
 internal/market/        catalog, quote providers, in-memory snapshot
 internal/web/           read-only routes and static serving

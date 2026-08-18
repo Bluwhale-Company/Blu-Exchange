@@ -31,7 +31,7 @@ func TestStartBuildsThenForwardsArguments(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		binary += ".exe"
 	}
-	flags := []string{"-addr", ":9000", "-offline"}
+	flags := []string{"--port", "9000", "--offline"}
 	var calls [][]string
 	invoke := func(_ context.Context, dir, name string, args ...string) error {
 		if dir != root {
@@ -59,6 +59,43 @@ func TestBuildFailurePreventsStart(t *testing.T) {
 	})
 	if !errors.Is(err, buildError) || calls != 1 {
 		t.Fatalf("failed build must prevent startup: calls=%d, error=%v", calls, err)
+	}
+}
+
+func TestDefaultStartForwardsCustomPort(t *testing.T) {
+	var calls [][]string
+	err := run(context.Background(), []string{"--port=9090"}, launcherProject(t), io.Discard, func(_ context.Context, _, name string, args ...string) error {
+		calls = append(calls, append([]string{name}, args...))
+		return nil
+	})
+	if err != nil || len(calls) != 2 || calls[0][0] != "go" || !reflect.DeepEqual(calls[1][1:], []string{"--port=9090"}) {
+		t.Fatalf("default start did not build and forward the custom port: %v, %v", calls, err)
+	}
+}
+
+func TestRemovedRunCommandDoesNotLaunch(t *testing.T) {
+	err := run(context.Background(), []string{"run"}, launcherProject(t), io.Discard, func(context.Context, string, string, ...string) error {
+		t.Fatal("removed command must not launch a child")
+		return nil
+	})
+	if err == nil {
+		t.Fatal("removed run command was accepted")
+	}
+}
+
+func TestTestCommandRunsBothSuitesAndPreservesUIFailure(t *testing.T) {
+	failure := errors.New("UI tests failed")
+	var calls [][]string
+	err := run(context.Background(), []string{"test"}, launcherProject(t), io.Discard, func(_ context.Context, _, name string, args ...string) error {
+		calls = append(calls, append([]string{name}, args...))
+		if name == "node" {
+			return failure
+		}
+		return nil
+	})
+	want := [][]string{{"go", "test", "./..."}, {"node", "--test", "tests/frontend.test.mjs"}}
+	if !reflect.DeepEqual(calls, want) || !errors.Is(err, failure) {
+		t.Fatalf("test suites or UI failure were lost: %v, %v", calls, err)
 	}
 }
 

@@ -16,17 +16,14 @@ import (
 )
 
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	options, err := parseServerOptions(os.Args[1:], os.Getenv("PORT"), os.Stdout)
+	if errors.Is(err, flag.ErrHelp) {
+		return
 	}
-	addr := flag.String("addr", ":"+port, "HTTP listen address")
-	offline := flag.Bool("offline", false, "Use labeled sample data without contacting market providers")
-	flag.Parse()
-	if flag.NArg() != 0 {
-		log.Fatal("unexpected arguments; use -h for server options")
+	if err != nil {
+		log.Fatal(err)
 	}
-	service := market.New(market.Options{Offline: *offline})
+	service := market.New(market.Options{Offline: options.Offline})
 	handler, err := web.New(service)
 	if err != nil {
 		log.Fatal(err)
@@ -34,7 +31,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go service.Run(ctx)
-	server := &http.Server{Addr: *addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
+	server := &http.Server{Addr: options.Addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -43,7 +40,7 @@ func main() {
 			log.Print("Shutdown: ", err)
 		}
 	}()
-	log.Printf("Blu-Exchange listening on %s | database-free market preview", *addr)
+	log.Printf("Blu-Exchange listening on %s | database-free market preview", options.Addr)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}

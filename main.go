@@ -20,19 +20,22 @@ const usage = `Blu-Exchange
 Usage: go run . [command] [options]
        go run main.go [command] [options]
 
-  run      Build and run the server in the foreground (default)
-  start    Same as run; builds the latest source before starting
+  start    Build and start the server (default when no command is given)
   build    Build bin/exchange (bin/exchange.exe on Windows)
-  test     Run all Go tests; additional Go test flags are forwarded
+  test     Run Go and UI tests (requires Node.js 20+)
   help     Show this help
 
 Examples:
   go run .
-  go run . run -addr :9000
+  go run . --port 9000
   go run . start
-  go run . test -v
-  go run . run -offline
+  go run . test
+  go run . --offline
   go run . build
+
+Start options: --port 8080, --addr 127.0.0.1:8080, --offline
+Port precedence: --port or --addr, then PORT, then 8080.
+Additional test flags are forwarded to Go tests, e.g. test -v.
 
 No database, API key, or .env file is required.
 Coinbase public crypto quotes refresh every 30 seconds. Press Ctrl+C to stop.
@@ -67,7 +70,7 @@ func mainCode() int {
 }
 
 func run(ctx context.Context, args []string, directory string, out io.Writer, invoke commandRunner) error {
-	command := "run"
+	command := "start"
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		command, args = args[0], args[1:]
 	} else if len(args) > 0 && (args[0] == "-h" || args[0] == "--help") {
@@ -78,7 +81,9 @@ func run(ctx context.Context, args []string, directory string, out io.Writer, in
 		return err
 	}
 	switch command {
-	case "run", "start", "build", "test":
+	case "start", "build", "test":
+	case "run":
+		return fmt.Errorf("the redundant run command was removed; use 'go run .' to start")
 	default:
 		return fmt.Errorf("unknown command %q; use 'go run . help'", command)
 	}
@@ -87,7 +92,12 @@ func run(ctx context.Context, args []string, directory string, out io.Writer, in
 		return err
 	}
 	if command == "test" {
-		return invoke(ctx, root, "go", append([]string{"test", "./..."}, args...)...)
+		fmt.Fprintln(out, "Running Go tests...")
+		if err := invoke(ctx, root, "go", append([]string{"test", "./..."}, args...)...); err != nil {
+			return err
+		}
+		fmt.Fprintln(out, "Running UI tests...")
+		return invoke(ctx, root, "node", "--test", "tests/frontend.test.mjs")
 	}
 	if command == "build" && len(args) != 0 {
 		return fmt.Errorf("build takes no arguments; use 'go run . help'")

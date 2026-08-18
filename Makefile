@@ -1,11 +1,12 @@
 GO ?= go
+PORT ?= 8080
 
 .PHONY: build run start test
 build:
 	$(GO) run . build
 run:
-	$(GO) run . run
+	$(GO) run . --port $(PORT)
 start:
-	$(GO) run . start
+	$(GO) run . --port $(PORT)
 test:
 	$(GO) run . test
