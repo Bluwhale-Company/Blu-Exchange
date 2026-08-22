@@ -17,7 +17,7 @@ func parseServerOptions(args []string, environmentPort string, out io.Writer) (s
 	var options serverOptions
 	flags := flag.NewFlagSet("Blu-Exchange", flag.ContinueOnError)
 	flags.SetOutput(out)
-	port := flags.String("port", "", "HTTP port (1-65535; defaults to PORT or 8080)")
+	port := flags.String("port", "", "HTTP port (1-65535; defaults to PORT or 5000)")
 	addr := flags.String("addr", "", "HTTP host:port, for example 127.0.0.1:9000 (alternative to --port)")
 	flags.BoolVar(&options.Offline, "offline", false, "Use sample data without contacting market providers")
 	if err := flags.Parse(args); err != nil {
@@ -37,7 +37,7 @@ func parseServerOptions(args []string, environmentPort string, out io.Writer) (s
 	host := ""
 	value := environmentPort
 	if value == "" {
-		value = "8080"
+		value = "5000"
 	}
 	if hasPort {
 		value = *port

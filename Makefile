@@ -1,5 +1,5 @@
 GO ?= go
-PORT ?= 8080
+PORT ?= 5000
 
 .PHONY: build run start test
 build:

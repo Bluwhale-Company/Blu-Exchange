@@ -33,8 +33,8 @@ Examples:
   go run . --offline
   go run . build
 
-Start options: --port 8080, --addr 127.0.0.1:8080, --offline
-Port precedence: --port or --addr, then PORT, then 8080.
+Start options: --port 5000, --addr 127.0.0.1:5000, --offline
+Port precedence: --port or --addr, then PORT, then 5000.
 Additional test flags are forwarded to Go tests, e.g. test -v.
 
 No database, API key, or .env file is required.

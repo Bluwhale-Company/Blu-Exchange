@@ -14,7 +14,7 @@ func TestServerPortSelection(t *testing.T) {
 		env  string
 		want string
 	}{
-		{"default", nil, "", ":8080"},
+		{"default", nil, "", ":5000"},
 		{"environment", nil, "10000", ":10000"},
 		{"custom port", []string{"--port", "9000"}, "", ":9000"},
 		{"equals syntax", []string{"--port=9000"}, "", ":9000"},

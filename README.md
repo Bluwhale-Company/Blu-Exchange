@@ -7,7 +7,7 @@ A database-free crypto and stock market workspace, built with Go and embedded HT
 Install Go 1.25.5 or newer, then run from the project directory:
 
 ```sh
-go run .                # start at http://localhost:8080
+go run .                # start at http://localhost:5000
 go run . --port 9000    # start on a custom port
 go run . start          # explicit start command
 go run . build          # build bin/exchange (exchange.exe on Windows)
@@ -45,7 +45,7 @@ The only live-data provider is Coinbase's **public Exchange API**. No credential
 - **Charts:** Coinbase hourly candle closes supply the 1D and 7D charts for supported assets. History is fetched separately every **15 minutes** to avoid frequent candle requests. Real timestamps, gaps, and cached-history timestamps are preserved. History failures never replace a live asset's chart with a synthetic curve. Sample previews retain explicitly illustrative charts.
 - **Caching:** quotes and history stay in memory. Browser requests read the shared snapshot and never fan out into extra Coinbase requests. A maximum of three provider requests runs concurrently, and a refresh is bounded to 25 seconds. Market cap is unavailable from this feed and displayed as a dash.
 
-The server defaults to port 8080. Use `--port 9000` to choose a custom port, or `--addr 127.0.0.1:9000` to bind a specific interface. These options also work with `start` and the compiled executable. Supply either `--port` or `--addr`; both validate port numbers from 1 to 65535. Explicit flags override the standard process `PORT` variable. The app does not load `.env` files, and feed credentials or interval environment variables are not used.
+The server defaults to port 5000. Use `--port 9000` to choose a custom port, or `--addr 127.0.0.1:9000` to bind a specific interface. These options also work with `start` and the compiled executable. Supply either `--port` or `--addr`; both validate port numbers from 1 to 65535. Explicit flags override the standard process `PORT` variable. The app does not load `.env` files, and feed credentials or interval environment variables are not used.
 
 Coinbase's access, attribution, redistribution terms, and rate limits govern its data.
 
@@ -77,15 +77,9 @@ tests/                  frontend logic tests
 Each asset includes metadata and a `quote` with its price, source, status, timestamps, and available history.
 `GET /ping` returns `OK`. Asset IDs are allowlisted. Unknown pages return 404; mutation methods return 405. The Go app uses only the standard library.
 
-## Containers and deployment
+## Deployment
 
-```sh
-docker compose up --build
-```
-
-The Compose configuration runs one application container on port 8080, with no volumes, database services, or feed credentials.
-The image includes CA certificates for outbound HTTPS and runs as an unprivileged user.
-`render.yaml` defines the same standalone service and uses the host-provided `PORT`.
+Build with `go run . build` and run the resulting executable directly. `render.yaml` defines a native Go service and uses the host-provided `PORT`.
 
 ## Design and data references
 
