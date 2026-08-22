@@ -241,6 +241,29 @@ main {
   color:var(--accent);
   text-transform:uppercase
 }
+.brand-masthead {
+  position:relative;
+  display:flex;
+  justify-content:center;
+  padding:clamp(12px,3vw,32px) 12px;
+  margin:0 0 20px;
+  isolation:isolate
+}
+.brand-masthead::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background-image:linear-gradient(rgba(119,162,255,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(119,162,255,.09) 1px,transparent 1px);
+  background-size:32px 32px;
+  mask-image:radial-gradient(ellipse at center,#000 20%,transparent 72%)
+}
+.brand-masthead img {
+  display:block;
+  width:min(100%,840px);
+  height:auto
+}
 .hero {
   display:grid;
   grid-template-columns:1.2fr 1fr;

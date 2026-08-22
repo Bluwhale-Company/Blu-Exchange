@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 144" role="img" aria-labelledby="title">
+  <title id="title">Bluwhale</title>
+  <defs>
+    <pattern id="dots" width="5" height="5" patternUnits="userSpaceOnUse">
+      <circle cx="2.5" cy="2.5" r="1.5" fill="#6297fa"/>
+    </pattern>
+  </defs>
+  <text x="28" y="116" font-family="Arial, Helvetica, sans-serif" font-size="116" font-weight="700" letter-spacing="8" textLength="864" lengthAdjust="spacingAndGlyphs" fill="url(#dots)">BLUWHALE</text>
+</svg>

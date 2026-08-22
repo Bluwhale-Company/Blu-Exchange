@@ -1,6 +1,26 @@
 # Blu-Exchange
 
-A database-free crypto and stock market workspace, built with Go and embedded HTML, CSS, and JavaScript. Includes BluAI (Bluwhale), seven other cryptocurrencies, and selected North American and European companies.
+A database-free crypto and stock market workspace branded as **Bluwhale**, built with Go and embedded HTML, CSS, and JavaScript. Includes BluAI (Bluwhale), seven other cryptocurrencies, and selected North American and European companies.
+
+## Screen previews
+
+Rebranded design references for the Bluwhale website.
+
+### Landing page
+
+![Bluwhale landing page](assets/landingpage.png)
+
+### Markets
+
+![Bluwhale markets](assets/markets.png)
+
+### Trading terminal
+
+![Bluwhale trading terminal](assets/trade.png)
+
+### Wallet
+
+![Bluwhale wallet preview](assets/wallet.png)
 
 ## Run
 
@@ -85,7 +105,9 @@ Build with `go run . build` and run the resulting executable directly. `render.y
 
 ## Design and data references
 
-The layout uses Blu-Exchange's blue/charcoal identity with market-table, asset-category, and trading-workspace patterns informed by [Binance Markets](https://www.binance.com/en/markets/overview), [Crypto.com Exchange](https://crypto.com/exchange), [OKX Markets](https://www.okx.com/markets/prices), and [LocalCoinSwap](https://localcoinswap.com/).
+The layout uses Bluwhale's blue/charcoal identity with market-table, asset-category, and trading-workspace patterns informed by [Binance Markets](https://www.binance.com/en/markets/overview), [Crypto.com Exchange](https://crypto.com/exchange), [OKX Markets](https://www.okx.com/markets/prices), and [LocalCoinSwap](https://localcoinswap.com/).
+
+The landing page uses a lightweight dotted Bluwhale wordmark from `ui/static/images/bluwhale-wordmark.svg`. The rebranded images in `assets/` are design references; [image editing prompts](assets/branding-prompts.md) document their creation.
 
 Provider contracts: [Coinbase public product stats](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-stats), [Coinbase candles](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles), [Coinbase product list](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-all-known-trading-pairs), and [Coinbase rate limits](https://docs.cdp.coinbase.com/exchange/rest-api/rate-limits).
 

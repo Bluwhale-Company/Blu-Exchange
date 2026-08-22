@@ -16,9 +16,12 @@
         "instanceLimit": 1
       },
       "presentation": {
-        "reveal": "always",
+        "reveal": "never",
+        "echo": false,
         "focus": false,
-        "panel": "dedicated"
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "close": true
       }
     }
   ]

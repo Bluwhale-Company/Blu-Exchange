@@ -18,7 +18,7 @@ func TestReadOnlyRoutes(t *testing.T) {
 	for _, path := range []string{"/", "/markets", "/watchlist", "/trade/bluai", "/trade/nvda", "/portfolio", "/orders", "/user/account", "/user/wallet"} {
 		r := httptest.NewRecorder()
 		handler.ServeHTTP(r, httptest.NewRequest("GET", path, nil))
-		if r.Code != 200 || !strings.Contains(r.Body.String(), "Blu-Exchange") || !strings.Contains(r.Header().Get("Content-Type"), "text/html") {
+		if r.Code != 200 || !strings.Contains(r.Body.String(), "Bluwhale") || !strings.Contains(r.Header().Get("Content-Type"), "text/html") {
 			t.Errorf("%s: %d", path, r.Code)
 		}
 		if r.Header().Get("Set-Cookie") != "" {
