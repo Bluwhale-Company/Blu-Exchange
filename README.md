@@ -19,6 +19,8 @@ go run . help
 No npm install, database, migration, Redis, account, or API key is required to start.
 The executable embeds the entire UI and can run independently of the source directory.
 
+Opening this folder in VS Code starts the `Blu-Exchange: Start (port 5000)` task from `.vscode/tasks.json`, which runs `go run . --port 5000` on your machine. Allow automatic tasks when VS Code prompts in a trusted workspace. You can also launch it with **Tasks: Run Task** and stop it with **Tasks: Terminate Task**. See [VS Code automatic tasks](https://code.visualstudio.com/docs/debugtest/tasks#_control-automatic-task-execution).
+
 For a completely offline preview:
 
 ```sh
