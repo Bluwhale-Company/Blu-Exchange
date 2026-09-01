@@ -153,8 +153,8 @@ func TestCoinbaseHistoryFiltersOutOfRangeAndMalformedCandles(t *testing.T) {
 		})
 	}, Options{})
 	a, _ := Find("bitcoin")
-	values, times, err := s.coinbaseHistory(context.Background(), a)
-	if err != nil || len(values) != 2 || values[0] != 1 || values[1] != 2 || times[1]-times[0] != 7200 {
+	values, times, candles, err := s.coinbaseHistory(context.Background(), a)
+	if err != nil || len(candles) != 2 || candles[1].High != 3 || candles[1].Volume != 10 || len(values) != 2 || values[0] != 1 || values[1] != 2 || times[1]-times[0] != 7200 {
 		t.Fatalf("history normalization: %v %v %v", values, times, err)
 	}
 }

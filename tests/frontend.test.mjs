@@ -1,6 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {escapeHTML, money, percent, selectAssets, estimate, chartGeometry, chartWindow} from '../ui/static/js/core.mjs';
+import {candleWindow, renderCandles} from '../ui/static/js/candles.mjs';
+
+test('candle ranges retain OHLC and volume, omit old and future bars, and never invent live history',()=>{
+ const now=Date.UTC(2026,8,9,12);
+ const candles=[-48,-24,-2,1].map(hours=>({time:now/1000+hours*3600,open:100,high:120,low:90,close:110,volume:12}));
+ assert.deepEqual(candleWindow({status:'live',candles},'1d',now),candles.slice(1,3));
+ assert.equal(candleWindow({status:'stale',candles},'7d',now).length,3);
+ assert.deepEqual(candleWindow({status:'live',chart:[1,2]},'7d',now),[]);
+ assert.equal(candleWindow({status:'sample',candles:Array(168).fill(candles[0])},'1d',now).length,24);
+});
+
+test('flat, zero-volume candles render finite geometry and hover details',()=>{
+ const nodes=new Map();
+ const node=selector=>{if(!nodes.has(selector))nodes.set(selector,{style:{},setAttribute(){},addEventListener(type,fn){this[type]=fn;},getBoundingClientRect(){return {left:0,width:800};}});return nodes.get(selector);};
+ const container={clientWidth:800,querySelector:node};
+ const quote={status:'sample',source:'Sample',candles:[0,1].map(()=>({open:100,high:100,low:100,close:100,volume:0}))};
+ let hovered='';
+ assert.equal(renderCandles(container,{name:'Test <asset>',symbol:'TEST',quote},'7d',v=>{hovered=v;}),true);
+ assert.ok(!/NaN|Infinity/.test(container.innerHTML));
+ assert.ok(container.innerHTML.includes('Test &lt;asset&gt;'));
+ node('svg').pointermove({clientX:200});
+ assert.ok(hovered.includes('$100.00'));
+ assert.ok(node('#candle-ohlc').textContent.includes('O 100.00'));
+ node('svg').pointerleave();
+ assert.equal(hovered,'');
+});
 
 const assets=[
  {id:'bluai',symbol:'BLUAI',name:'BluAI',country:'',kind:'crypto',region:'Global',quote:{price:.01,change:2}},

@@ -23,7 +23,16 @@ type Asset struct {
 	Quote       Quote  `json:"quote"`
 	coinbase    string
 }
+type Candle struct {
+	Time   int64   `json:"time"`
+	Open   float64 `json:"open"`
+	High   float64 `json:"high"`
+	Low    float64 `json:"low"`
+	Close  float64 `json:"close"`
+	Volume float64 `json:"volume"`
+}
 type Quote struct {
+	Candles        []Candle   `json:"candles,omitempty"`
 	Price          float64    `json:"price"`
 	Change         *float64   `json:"change"`
 	High           float64    `json:"high"`
@@ -89,6 +98,15 @@ func New(opts Options) *Service {
 			x := float64(j) / 167
 			series[j] = samplePrices[i] * (1 + (x-1)*change/100 + (math.Sin(float64(j)*0.43+float64(i))+math.Sin(float64(j)*0.13))*0.003)
 		}
+		candles := make([]Candle, len(series))
+		for j, close := range series {
+			open := close
+			if j > 0 {
+				open = series[j-1]
+			}
+			wick := close * (0.0005 + math.Abs(math.Sin(float64(j)*1.7))*0.0015)
+			candles[j] = Candle{Open: open, Close: close, High: math.Max(open, close) + wick, Low: math.Min(open, close) - wick, Volume: (12 + math.Abs(math.Sin(float64(j)*2.3))*90) * (1 + math.Abs(close-open)/close*1000)}
+		}
 		note := "Connecting to Coinbase. Showing an illustrative sample."
 		if a.coinbase == "" {
 			note = "This asset has no supported Coinbase USD pair. Showing an illustrative sample."
@@ -99,7 +117,7 @@ func New(opts Options) *Service {
 		if opts.Offline {
 			note = "Offline preview. This is an illustrative sample."
 		}
-		s.quotes[a.ID] = Quote{Price: samplePrices[i], Change: &change, High: samplePrices[i] * 1.025, Low: samplePrices[i] * 0.975, Source: "Sample", Status: "sample", Chart: series, ChartSource: "Illustrative", Note: note}
+		s.quotes[a.ID] = Quote{Price: samplePrices[i], Change: &change, High: samplePrices[i] * 1.025, Low: samplePrices[i] * 0.975, Source: "Sample", Status: "sample", Chart: series, Candles: candles, ChartSource: "Illustrative", Note: note}
 	}
 	return s
 }
@@ -113,6 +131,7 @@ func (s *Service) Snapshot() Snapshot {
 	}
 	for i, a := range catalog {
 		q := s.quotes[a.ID]
+		q.Candles = append([]Candle(nil), q.Candles...)
 		q.Chart = append([]float64(nil), q.Chart...)
 		q.ChartTimes = append([]int64(nil), q.ChartTimes...)
 		if q.ChartUpdatedAt != nil {
@@ -195,6 +214,7 @@ func (s *Service) put(id string, q Quote) {
 	q.RetrievedAt = &now
 	previous := s.quotes[id]
 	if previous.Source == "Coinbase" {
+		q.Candles = previous.Candles
 		q.Chart = previous.Chart
 		q.ChartTimes = previous.ChartTimes
 		q.ChartSource = previous.ChartSource

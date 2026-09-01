@@ -1894,3 +1894,34 @@ dialog::backdrop {
     scroll-behavior:auto!important
   }
 }
+
+/* Trading chart: compact controls, full-height candles and a right price scale. */
+.chart-panel { border-radius:5px; overflow:hidden }
+.chart-panel .chart-toolbar { padding:8px 12px; border-bottom:1px solid var(--line); gap:8px }
+.chart-instrument { display:flex; align-items:center; gap:12px; font-size:12px; min-width:0 }
+.chart-instrument strong { white-space:nowrap }
+.candle-interval { padding:5px 10px; border-left:1px solid var(--line); border-right:1px solid var(--line); color:var(--text) }
+.candle-mode { color:var(--muted); font-size:11px }
+.candle-source { margin:0; padding:7px 12px; color:var(--subtle); font-size:9px; background:var(--panel) }
+.candle-area { position:relative; background:#101214; color:#d6dae0; min-height:360px; font-family:Arial,sans-serif }
+.candle-area>svg { display:block; width:100%; height:auto; touch-action:pan-y }
+.candle-heading { position:absolute; top:10px; left:12px; right:85px; display:flex; flex-wrap:wrap; gap:7px 12px; pointer-events:none; font-size:11px }
+.candle-heading strong { font-size:13px; font-weight:400 }
+.candle-heading>span { font-variant-numeric:tabular-nums; font-size:10px }
+.candle-volume { position:absolute; left:12px; top:42px; font-size:10px; color:#a0a5ad; pointer-events:none }
+.candle-volume span { color:#00b69b; margin-left:6px }
+.candle-grid { stroke:#24272b; stroke-width:.6 }
+.candle-border { stroke:#363a41; stroke-width:1 }
+.candle-axis { fill:#a9adb4; font-size:10px; font-variant-numeric:tabular-nums }
+.chart-panel .chart-caption { padding:10px 12px; border-top:1px solid var(--line); min-height:36px }
+[data-theme="light"] .candle-area { background:#fafbfc; color:#303740 }
+[data-theme="light"] .candle-grid { stroke:#dce1e7 }
+[data-theme="light"] .candle-axis { fill:#626b78 }
+@media(max-width:560px) {
+ .chart-instrument { gap:7px; font-size:10px }
+ .candle-mode { display:none }
+ .candle-heading strong { font-size:11px }
+ .candle-heading>span { font-size:9px }
+ .candle-area { min-height:0 }
+ .candle-volume { top:48px; font-size:9px }
+}

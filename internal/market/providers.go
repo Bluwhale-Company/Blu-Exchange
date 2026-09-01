@@ -101,22 +101,23 @@ func (s *Service) refreshCrypto(ctx context.Context) {
 	}
 	s.nextHistory = time.Now().Add(historyInterval)
 	visitProducts(ctx, valid, func(a Asset) {
-		values, times, err := s.coinbaseHistory(ctx, a)
+		values, times, candles, err := s.coinbaseHistory(ctx, a)
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		q := s.quotes[a.ID]
 		if err != nil {
 			if len(q.Chart) > 0 {
-				q.ChartSource = "Coinbase · cached hourly closes"
+				q.ChartSource = "Coinbase · cached hourly candles"
 			}
 			s.quotes[a.ID] = q
 			return
 		}
 		now := time.Now().UTC()
+		q.Candles = candles
 		q.Chart = values
 		q.ChartTimes = times
 		q.ChartUpdatedAt = &now
-		q.ChartSource = "Coinbase · hourly closes"
+		q.ChartSource = "Coinbase · hourly candles"
 		s.quotes[a.ID] = q
 	})
 }
@@ -151,17 +152,18 @@ func (s *Service) coinbaseQuote(ctx context.Context, a Asset) (Quote, error) {
 	return Quote{Price: price, Change: &change, High: high, Low: low, Source: "Coinbase", AsOf: &now, ChartSource: "History unavailable"}, nil
 }
 
-func (s *Service) coinbaseHistory(ctx context.Context, a Asset) ([]float64, []int64, error) {
+func (s *Service) coinbaseHistory(ctx context.Context, a Asset) ([]float64, []int64, []Candle, error) {
 	end := time.Now().UTC()
 	start := end.Add(-7 * 24 * time.Hour)
 	params := url.Values{"granularity": {"3600"}, "start": {start.Format(time.RFC3339)}, "end": {end.Format(time.RFC3339)}}
 	var rows [][]float64
 	if err := s.get(ctx, s.coinbaseURL+"/products/"+url.PathEscape(a.coinbase)+"/candles?"+params.Encode(), &rows); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	// The API returns newest first and may include candles before the requested start.
 	// Preserve real timestamps and gaps instead of generating replacement prices.
 	closeByTime := map[int64]float64{}
+	candleByTime := map[int64]Candle{}
 	for _, row := range rows {
 		if len(row) < 6 || !positive(row[0]) || row[0] < float64(start.Unix()) || row[0] > float64(end.Unix()) || !positive(row[4]) {
 			continue
@@ -170,7 +172,11 @@ func (s *Service) coinbaseHistory(ctx context.Context, a Asset) ([]float64, []in
 		if float64(stamp) != row[0] {
 			continue
 		}
+		if !positive(row[1]) || !positive(row[2]) || !positive(row[3]) || row[1] > math.Min(row[3], row[4]) || row[2] < math.Max(row[3], row[4]) || math.IsNaN(row[5]) || math.IsInf(row[5], 0) || row[5] < 0 {
+			continue
+		}
 		closeByTime[stamp] = row[4]
+		candleByTime[stamp] = Candle{Time: stamp, Low: row[1], High: row[2], Open: row[3], Close: row[4], Volume: row[5]}
 	}
 	times := make([]int64, 0, len(closeByTime))
 	for stamp := range closeByTime {
@@ -178,11 +184,13 @@ func (s *Service) coinbaseHistory(ctx context.Context, a Asset) ([]float64, []in
 	}
 	sort.Slice(times, func(i, j int) bool { return times[i] < times[j] })
 	if len(times) < 2 {
-		return nil, nil, fmt.Errorf("history unavailable")
+		return nil, nil, nil, fmt.Errorf("history unavailable")
 	}
 	values := make([]float64, len(times))
+	candles := make([]Candle, len(times))
 	for i, stamp := range times {
 		values[i] = closeByTime[stamp]
+		candles[i] = candleByTime[stamp]
 	}
-	return values, times, nil
+	return values, times, candles, nil
 }
