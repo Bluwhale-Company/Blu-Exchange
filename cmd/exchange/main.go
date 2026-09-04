@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	service := market.New(market.Options{Offline: options.Offline})
+	serviice := market.New(market.Options{Offline: options.Offline})
 	handler, err := web.New(service)
 	if err != nil {
 		log.Fatal(err)
