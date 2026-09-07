@@ -39,7 +39,7 @@ go run . help
 No npm install, database, migration, Redis, account, or API key is required to start.
 The executable embeds the entire UI and can run independently of the source directory.
 
-The repository pins `strconf` v1.0.3 in `go.mod` and `go.sum`. After cloning, Go
+The repository pins `strconf` v1.0.4 in `go.mod` and `go.sum`. After cloning, Go
 fetches the pinned dependency automatically when building the server; no separate
 `go get` command is needed. Maintainers should commit both dependency files when
 updating its version.
