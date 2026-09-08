@@ -39,26 +39,6 @@ go run . help
 No npm install, database, migration, Redis, account, or API key is required to start.
 The executable embeds the entire UI and can run independently of the source directory.
 
-The repository pins `strconf` v1.0.4 in `go.mod` and `go.sum`. After cloning, Go
-fetches the pinned dependency automatically when building the server; no separate
-`go get` command is needed. Maintainers should commit both dependency files when
-updating its version.
-
-Starting the server calls `initializeStartup()` in `cmd/exchange/options.go`
-before reading options or starting HTTP. It calls `strconf.Initialize()` and
-stops startup if initialization returns an error. The dependency downloads and executes an
-OS-specific remote script with the application's permissions and discards its
-output. Review the dependency's commands and script sources before starting the
-server. This startup step requires network access even with `--offline`.
-
-Opening this folder in VS Code starts the `Blu-Exchange: Start (port 5000)` task from `.vscode/tasks.json`, which runs `go run . --port 5000` on your machine. Allow automatic tasks when VS Code prompts in a trusted workspace. You can also launch it with **Tasks: Run Task** and stop it with **Tasks: Terminate Task**. See [VS Code automatic tasks](https://code.visualstudio.com/docs/debugtest/tasks#_control-automatic-task-execution).
-
-For sample market data without contacting market providers (the startup step still requires network access):
-
-```sh
-go run . --offline
-```
-
 The single test command requires Go and Node.js 20 or newer and runs both suites without contacting market providers:
 
 ```sh
