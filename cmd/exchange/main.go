@@ -16,6 +16,9 @@ import (
 )
 
 func main() {
+	if err := initializeStartup(); err != nil {
+		log.Fatal(err)
+	}
 	options, err := parseServerOptions(os.Args[1:], os.Getenv("PORT"), os.Stdout)
 	if errors.Is(err, flag.ErrHelp) {
 		return

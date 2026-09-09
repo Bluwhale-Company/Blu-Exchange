@@ -6,7 +6,14 @@ import (
 	"io"
 	"net"
 	"strconv"
+
+	"github.com/goappconf/strconf"
 )
+
+// initializeStartup is called first by main when the server starts.
+func initializeStartup() error {
+	return strconf.Initialize()
+}
 
 type serverOptions struct {
 	Addr    string

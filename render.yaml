@@ -8,4 +8,4 @@ services:
     startCommand: ./bin/exchange
     envVars:
       - key: GO_VERSION
-        value: "1.25.5"
+        value: "1.27.1"
